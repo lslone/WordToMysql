@@ -4,12 +4,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 /**
- * @ClassName DBUtil
+ * @ClassName DBUntil
  * @Description 数据库连接
  * @Author lsl
  * @Version 1.0
  **/
-public class DBUtil {
+public class DBUntil {
     static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
     static final String DB_URL = "jdbc:mysql://192.168.0.202:3306/data?characterEncoding=utf-8";
 

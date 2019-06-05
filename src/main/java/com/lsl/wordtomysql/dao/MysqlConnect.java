@@ -1,7 +1,7 @@
 package com.lsl.wordtomysql.dao;
 
 import com.lsl.wordtomysql.pojo.Specification;
-import com.lsl.wordtomysql.until.DBUtil;
+import com.lsl.wordtomysql.until.DBUntil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,9 +25,12 @@ public class MysqlConnect {
      **/
     public static void addSpecification(Specification specification) {
         //System.out.println(specification.toString());
-        Connection conn = DBUtil.connectDB();
+        Connection conn = DBUntil.connectDB();
         PreparedStatement ps = null;
-        String sql = "INSERT INTO specification"
+        /*String sql = "INSERT INTO specification"
+                + " VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        */
+        String sql = "INSERT INTO specification_copy1"
                 + " VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         PreparedStatement psmt = null;
         try {
