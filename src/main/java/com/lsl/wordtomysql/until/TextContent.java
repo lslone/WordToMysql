@@ -1,6 +1,7 @@
 package com.lsl.wordtomysql.until;
 
 import com.lsl.wordtomysql.dao.MysqlConnect;
+import com.lsl.wordtomysql.pojo.DrugYZ;
 import com.lsl.wordtomysql.pojo.Specification;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
@@ -17,12 +18,13 @@ import java.util.regex.Pattern;
 
 /**
  * @ClassName TextContent
- * @Description 提取文档的内容并转换
+ * @Description 提取说明书文档的内容并转换
  * @Author lsl
  * @Version 1.0
  **/
 public class TextContent {
 
+    private static DrugInformationToMap drugInformationToMap=new DrugInformationToMap();
     /**
      * @Author  lsl
      * @Description 获取文件夹下文件
@@ -35,36 +37,20 @@ public class TextContent {
         File[] fs = file.listFiles();
         System.out.println(fs.length);
         for(File f:fs){
-            if (i >= 1) {
-                String fileValue = TextContent.readWord(f);
-                //System.out.println(fileValue);
-                Map strMap = TextContent.strToMap(fileValue);
-                Map mapToMap = TextContent.mapToMap(strMap);
-                TextContent.toSpecification(mapToMap);
-            }
-            i++;
-            System.out.println(i);
-            /*if (i >= 1) {
-                String fileValue = TextContent.readWord(f);
-                //System.out.println(fileValue);
-                Map strMap = TextContent.strToMap(fileValue);
-                Map mapToMap = TextContent.mapToMap(strMap);
-                TextContent.toSpecification(mapToMap);
-            }
-            i++;
-            System.out.println(i);*/
-        }
-        /*for(File f:fs){
             if (f.isDirectory()) {
                 func(f);
             } else if (f.isFile()) {
-                String fileValue = TextContent.readWord(f);
-                //System.out.println(fileValue);
-                ArrayList arrayList = TextContent.strSplit(fileValue);
-                TextContent.toSpecification(arrayList);
+                if (i >= 1) {
+                    String fileValue = TextContent.readContext(f);
+                    drugInformationToMap.strToMap(fileValue);
+                    /*Map strMap = TextContent.strToMap(fileValue);
+                    Map mapToMap = TextContent.mapToMap(strMap);
+                    TextContent.toSpecification(mapToMap);*/
+                }
+                i++;
+                System.out.println(i);
             } else { }
-        }*/
-
+        }
     }
 
     /**
@@ -74,7 +60,7 @@ public class TextContent {
      * @Param [file]
      * @return java.lang.String
      **/
-    public static String readWord(File file) {
+    public static String readContext(File file) {
         String buffer = "";
         //System.out.println(file.getName());
         try {
@@ -98,22 +84,20 @@ public class TextContent {
                 XWPFDocument xdoc = new XWPFDocument(new FileInputStream(file));
                 XWPFWordExtractor extractor = new XWPFWordExtractor(xdoc);
                 buffer = extractor.getText()+id;
-                //System.out.println(buffer);
                 extractor.close();
                 xdoc.close();
             } else if(file.getName().endsWith("txt")){
                 System.out.println(file.getName());
-                String id = TextContent.getId(file.getName());
+                //String id = TextContent.getId(file.getName());
                 StringBuilder result = new StringBuilder();
-                InputStreamReader isr = new InputStreamReader(new FileInputStream(file), "gb2312");
+                InputStreamReader isr = new InputStreamReader(new FileInputStream(file), "utf-8");
                 BufferedReader br = new BufferedReader(isr);
-                //BufferedReader br = new BufferedReader(new FileReader(file));
                 String s = null;
                 while((s = br.readLine())!=null){
                     result.append(System.lineSeparator()+s);
                 }
-                buffer=result.toString()+id;
-                //System.out.println(buffer);
+                //buffer=result.toString()+id;
+                buffer=result.toString();
                 br.close();
             }else{
                 System.out.println(file.getName()+"文件错误！");
@@ -136,6 +120,7 @@ public class TextContent {
         Pattern p = Pattern.compile("\\d+");
         Matcher m = p.matcher(fileName);
         m.find();
+
         String strId="【id】"+m.group();
         //System.out.println(strId);
         return strId;
@@ -149,339 +134,20 @@ public class TextContent {
      * @return java.util.Map
      **/
     public static Map strToMap(String fileValue) {
-        Map<String, String> specificationMap = new HashMap();
-        if (fileValue.indexOf("【")>=0){
-            String[] strArray = fileValue.trim().split("【");
-            for (int i = 0; i < strArray.length; i++) {
-                if (i == 0) { } else {
-                    String[] split = strArray[i].split("】");
-                    String str="";
-                    try {
-                        str = split[1];
-                    } catch (Exception e) {
-                        System.out.println(e);
-                    }
-                    String s = split[0].replaceAll("(?i)[^a-zA-Z0-9\u4E00-\u9FA5]", "");
-                    switch (s){
-                        case "id":
-                            specificationMap.put("id", str);
-                            break;
-                        case "药品名称": case "产品名称": case "通用名": case "通用名称":
-                            specificationMap.put("name",str);
-                            break;
-                        case "商品名称": case "商品名":
-                            specificationMap.put("genericName",str);
-                            break;
-                        case "英文名称":
-                            specificationMap.put("pinyinName",str);
-                            break;
-                        case "汉语拼音":
-                            specificationMap.put("EnglishName",str);
-                            break;
-                        case "主要成份":
-                            specificationMap.put("bases",str);
-                            break;
-                        case "成分": case "成份":case "配料":case "主要原料":
-                            specificationMap.put("ingredient",str);
-                            break;
-                        case "性状":
-                            specificationMap.put("character",str);
-                            break;
-                        case "作用类别":
-                            specificationMap.put("functionCategory",str);
-                            break;
-                        case "功能主治": case "适应症": case "适应症/功能主治":
-                            specificationMap.put("majorFunction",str);
-                            break;
-                        case "规格": case "规格型号": case "型号规格":
-                            specificationMap.put("specification",str);
-                            break;
-                        case "包装":case "包装规格":
-                            specificationMap.put("packaging",str);
-                            break;
-                        case "用法用量":case "食用方法及食用量":case "使用方法":
-                            specificationMap.put("usageAndDosage",str);
-                            break;
-                        case "不良反应":
-                            specificationMap.put("adverseReaction",str);
-                            break;
-                        case "禁忌": case "禁忌症":
-                            specificationMap.put("taboo",str);
-                            break;
-                        case "注意事项": case "禁忌症、注意事项":
-                            specificationMap.put("mattersNeedAttention",str);
-                            break;
-                        case "孕妇及哺乳期妇女用药": case "孕妇及妇女":
-                            specificationMap.put("womenMedicine",str);
-                            break;
-                        case "儿童用药":
-                            specificationMap.put("childrenMedicine",str);
-                            break;
-                        case "老年用药": case "老年患者用药": case "老年人用药":
-                            specificationMap.put("geriatricMedicine",str);
-                            break;
-                        case "药物相互作用":
-                            specificationMap.put("drugInteractions",str);
-                            break;
-                        case "药物过量":
-                            specificationMap.put("overdose",str);
-                            break;
-                        case "药理毒理": case "药理作用/药理毒理":
-                            specificationMap.put("drugEffect",str);
-                            break;
-                        case "药代动力学":
-                            specificationMap.put("pharmacokinetics",str);
-                            break;
-                        case "贮藏": case "贮藏条件": case "贮藏方法":
-                            specificationMap.put("reposit",str);
-                            break;
-                        case "有效期": case "保质期": case "使用期限":
-                            specificationMap.put("periodOfValidity",str);
-                            break;
-                        case "执行标准":
-                            specificationMap.put("executiveStandard",str);
-                            break;
-                        case "批准文号":
-                            specificationMap.put("approvalNumber",str);
-                            break;
-                        case "剂型":
-                            specificationMap.put("dosage",str);
-                            break;
-                        case "生产企业": case "生产企业/产地": case "注册人、生产企业、售后服务单位":
-                            specificationMap.put("manufacturingEnterprise",str);
-                            break;
-                        case "产地":
-                            specificationMap.put("placeOfOrigin",str);
-                            break;
-                        case "说明书修订日期":
-                            specificationMap.put("revisionDate",str);
-                            break;
-                        case "产品性能结构及组成":
-                            specificationMap.put("structureAndComposition",str);
-                            break;
-                        case "生产方式":
-                            specificationMap.put("productionMode",str);
-                            break;
-                        case "性能":
-                            specificationMap.put("performance",str);
-                            break;
-                        case "用途":
-                            specificationMap.put("use",str);
-                            break;
-                        case "适用范围":case "使用范围":
-                            specificationMap.put("scopeOfApplication",str);
-                        case "浓度":
-                            specificationMap.put("concentration",str);
-                            break;
-                        case "运输":
-                            specificationMap.put("transportation",str);
-                            break;
-                        case "配件清单":
-                            specificationMap.put("partsList",str);
-                            break;
-                        case "注册证编号/备案凭证编号": case "产品注册证编号":
-                            specificationMap.put("registrationNumber",str);
-                            break;
-                        case "技术要求编号":
-                            specificationMap.put("technicalRequirements",str);
-                            break;
-                        case "生产许可证编号/生产备案凭证编号": case "医疗器械生产企业许可证号":
-                            specificationMap.put("licenseKey",str);
-                            break;
-                        case "保健功能":
-                            specificationMap.put("healthcareFunction",str);
-                            break;
-                        case "功效成分及含量": case "功效成份及含量":
-                            specificationMap.put("compositionAndContent",str);
-                            break;
-                        case "适宜人群":
-                            specificationMap.put("commendedUser",str);
-                            break;
-                        case "不适宜人群":
-                            specificationMap.put("disCommendedUser",str);
-                            break;
-                        case "生产许可证号":
-                            specificationMap.put("productionLicense",str);
-                            break;
-                        case "卫生许可证": case "卫生许可证号":
-                            specificationMap.put("sanitaryPermitNumber",str);
-                            break;
-                        case "经销商":
-                            specificationMap.put("dealer",str);
-                            break;
-                        default:
-                            specificationMap.put("other",str);
-                            continue;
-                    }
-                }
-            }
-        }else if(fileValue.indexOf("[")>=0){
-            String[] strArray = fileValue.trim().split("[");
-            for (int i = 0; i < strArray.length; i++) {
-                if (i == 0) { } else {
-                    String[] split = strArray[i].split("]");
-                    String str="";
-                    try {
-                        str = split[1];
-                    } catch (Exception e) {
-                        System.out.println(e);
-                    }
-                    String s = split[0].replaceAll("(?i)[^a-zA-Z0-9\u4E00-\u9FA5]", "");
-                    switch (s){
-                        case "id":
-                            specificationMap.put("id", str);
-                            break;
-                        case "药品名称": case "产品名称": case "通用名": case "通用名称":
-                            specificationMap.put("name",str);
-                            break;
-                        case "商品名称": case "商品名":
-                            specificationMap.put("genericName",str);
-                            break;
-                        case "英文名称":
-                            specificationMap.put("pinyinName",str);
-                            break;
-                        case "汉语拼音":
-                            specificationMap.put("EnglishName",str);
-                            break;
-                        case "主要成份":
-                            specificationMap.put("bases",str);
-                            break;
-                        case "成分": case "成份":case "配料":case "主要原料":
-                            specificationMap.put("ingredient",str);
-                            break;
-                        case "性状":
-                            specificationMap.put("character",str);
-                            break;
-                        case "作用类别":
-                            specificationMap.put("functionCategory",str);
-                            break;
-                        case "功能主治": case "适应症": case "适应症/功能主治":
-                            specificationMap.put("majorFunction",str);
-                            break;
-                        case "规格": case "规格型号": case "型号规格":
-                            specificationMap.put("specification",str);
-                            break;
-                        case "包装":case "包装规格":
-                            specificationMap.put("packaging",str);
-                            break;
-                        case "用法用量":case "食用方法及食用量":case "使用方法":
-                            specificationMap.put("usageAndDosage",str);
-                            break;
-                        case "不良反应":
-                            specificationMap.put("adverseReaction",str);
-                            break;
-                        case "禁忌": case "禁忌症":
-                            specificationMap.put("taboo",str);
-                            break;
-                        case "注意事项": case "禁忌症、注意事项":
-                            specificationMap.put("mattersNeedAttention",str);
-                            break;
-                        case "孕妇及哺乳期妇女用药": case "孕妇及妇女":
-                            specificationMap.put("womenMedicine",str);
-                            break;
-                        case "儿童用药":
-                            specificationMap.put("childrenMedicine",str);
-                            break;
-                        case "老年用药": case "老年患者用药": case "老年人用药":
-                            specificationMap.put("geriatricMedicine",str);
-                            break;
-                        case "药物相互作用":
-                            specificationMap.put("drugInteractions",str);
-                            break;
-                        case "药物过量":
-                            specificationMap.put("overdose",str);
-                            break;
-                        case "药理毒理": case "药理作用/药理毒理":
-                            specificationMap.put("drugEffect",str);
-                            break;
-                        case "药代动力学":
-                            specificationMap.put("pharmacokinetics",str);
-                            break;
-                        case "贮藏": case "贮藏条件": case "贮藏方法":
-                            specificationMap.put("reposit",str);
-                            break;
-                        case "有效期": case "保质期": case "使用期限":
-                            specificationMap.put("periodOfValidity",str);
-                            break;
-                        case "执行标准":
-                            specificationMap.put("executiveStandard",str);
-                            break;
-                        case "批准文号":
-                            specificationMap.put("approvalNumber",str);
-                            break;
-                        case "剂型":
-                            specificationMap.put("dosage",str);
-                            break;
-                        case "生产企业": case "生产企业/产地": case "注册人、生产企业、售后服务单位":
-                            specificationMap.put("manufacturingEnterprise",str);
-                            break;
-                        case "产地":
-                            specificationMap.put("placeOfOrigin",str);
-                            break;
-                        case "说明书修订日期":
-                            specificationMap.put("revisionDate",str);
-                            break;
-                        case "产品性能结构及组成":
-                            specificationMap.put("structureAndComposition",str);
-                            break;
-                        case "生产方式":
-                            specificationMap.put("productionMode",str);
-                            break;
-                        case "性能":
-                            specificationMap.put("performance",str);
-                            break;
-                        case "用途":
-                            specificationMap.put("use",str);
-                            break;
-                        case "适用范围":case "使用范围":
-                            specificationMap.put("scopeOfApplication",str);
-                        case "浓度":
-                            specificationMap.put("concentration",str);
-                            break;
-                        case "运输":
-                            specificationMap.put("transportation",str);
-                            break;
-                        case "配件清单":
-                            specificationMap.put("partsList",str);
-                            break;
-                        case "注册证编号/备案凭证编号": case "产品注册证编号":
-                            specificationMap.put("registrationNumber",str);
-                            break;
-                        case "技术要求编号":
-                            specificationMap.put("technicalRequirements",str);
-                            break;
-                        case "生产许可证编号/生产备案凭证编号": case "医疗器械生产企业许可证号":
-                            specificationMap.put("licenseKey",str);
-                            break;
-                        case "保健功能":
-                            specificationMap.put("healthcareFunction",str);
-                            break;
-                        case "功效成分及含量": case "功效成份及含量":
-                            specificationMap.put("compositionAndContent",str);
-                            break;
-                        case "适宜人群":
-                            specificationMap.put("commendedUser",str);
-                            break;
-                        case "不适宜人群":
-                            specificationMap.put("disCommendedUser",str);
-                            break;
-                        case "生产许可证号":
-                            specificationMap.put("productionLicense",str);
-                            break;
-                        case "卫生许可证": case "卫生许可证号":
-                            specificationMap.put("sanitaryPermitNumber",str);
-                            break;
-                        case "经销商":
-                            specificationMap.put("dealer",str);
-                            break;
-                        default:
-                            specificationMap.put("other",str);
-                            continue;
-                    }
-                }
-            }
+        Map<String, String> specificationMap = new HashMap(16);
+        String KEY_MATCHING_1 = "【";
+        String KEY_MATCHING_2 = "】";
+        String KEY_MATCHING_3 = "[";
+        String KEY_MATCHING_4 = "]";
+        if (fileValue.indexOf(KEY_MATCHING_1)>=0){
+            String[] strArray = fileValue.trim().split(KEY_MATCHING_1);
+            Map<String, String> stringStringMap = strToMapIncision(strArray, KEY_MATCHING_2);
+            specificationMap.putAll(stringStringMap);
+        }else if(fileValue.indexOf(KEY_MATCHING_3)>=0){
+            String[] strArray = fileValue.trim().split(KEY_MATCHING_3);
+            Map<String, String> stringStringMap = strToMapIncision(strArray, KEY_MATCHING_4);
+            specificationMap.putAll(stringStringMap);
         }
-
         /*for (Map.Entry<String, String> aaa : specificationMap.entrySet()) {
             System.out.println(aaa);
         }*/
@@ -490,7 +156,196 @@ public class TextContent {
 
     /**
      * @Author  lsl
-     * @Description 二次转换
+     * @Description 提取切割后形成的map
+     * @Date 16:47 2019/6/10
+     * @Param [strArray, KEY_MATCHING_4]
+     * @return java.util.Map<java.lang.String,java.lang.String>
+     **/
+    public static Map<String, String> strToMapIncision(String[] strArray,String KEY_MATCHING_4){
+        Map<String, String> specificationMap = new HashMap(16);
+        for (int i = 0; i < strArray.length; i++) {
+            if (i == 0) { } else {
+                String[] split = strArray[i].split(KEY_MATCHING_4);
+                String str="";
+                try {
+                    str = split[1];
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+                String s = split[0].replaceAll("(?i)[^a-zA-Z0-9\u4E00-\u9FA5]", "");
+                Map<String, String> matching = matchingSpecification(s, str);
+                specificationMap.putAll(matching);
+            }
+        }
+        return specificationMap;
+    }
+
+    /**
+     * @Author  lsl
+     * @Description 匹配添加至map中
+     * @Date 16:15 2019/6/10
+     * @Param [s, str]
+     * @return java.util.Map<java.lang.String,java.lang.String>
+     **/
+    public static Map<String, String> matchingSpecification(String s,String str){
+        Map<String, String> specificationMap = new HashMap(16);
+        switch (s){
+            case "id":
+                specificationMap.put("id", str);
+                break;
+            case "药品名称": case "产品名称": case "通用名": case "通用名称":
+                specificationMap.put("name",str);
+                break;
+            case "商品名称": case "商品名":
+                specificationMap.put("genericName",str);
+                break;
+            case "英文名称":
+                specificationMap.put("pinyinName",str);
+                break;
+            case "汉语拼音":
+                specificationMap.put("EnglishName",str);
+                break;
+            case "主要成份":
+                specificationMap.put("bases",str);
+                break;
+            case "成分": case "成份":case "配料":case "主要原料":
+                specificationMap.put("ingredient",str);
+                break;
+            case "性状":
+                specificationMap.put("character",str);
+                break;
+            case "作用类别":
+                specificationMap.put("functionCategory",str);
+                break;
+            case "功能主治": case "适应症": case "适应症/功能主治":
+                specificationMap.put("majorFunction",str);
+                break;
+            case "规格": case "规格型号": case "型号规格":
+                specificationMap.put("specification",str);
+                break;
+            case "包装":case "包装规格":
+                specificationMap.put("packaging",str);
+                break;
+            case "用法用量":case "食用方法及食用量":case "使用方法":
+                specificationMap.put("usageAndDosage",str);
+                break;
+            case "不良反应":
+                specificationMap.put("adverseReaction",str);
+                break;
+            case "禁忌": case "禁忌症":
+                specificationMap.put("taboo",str);
+                break;
+            case "注意事项": case "禁忌症、注意事项":
+                specificationMap.put("mattersNeedAttention",str);
+                break;
+            case "孕妇及哺乳期妇女用药": case "孕妇及妇女":
+                specificationMap.put("womenMedicine",str);
+                break;
+            case "儿童用药":
+                specificationMap.put("childrenMedicine",str);
+                break;
+            case "老年用药": case "老年患者用药": case "老年人用药":
+                specificationMap.put("geriatricMedicine",str);
+                break;
+            case "药物相互作用":
+                specificationMap.put("drugInteractions",str);
+                break;
+            case "药物过量":
+                specificationMap.put("overdose",str);
+                break;
+            case "药理毒理": case "药理作用/药理毒理":
+                specificationMap.put("drugEffect",str);
+                break;
+            case "药代动力学":
+                specificationMap.put("pharmacokinetics",str);
+                break;
+            case "贮藏": case "贮藏条件": case "贮藏方法":
+                specificationMap.put("reposit",str);
+                break;
+            case "有效期": case "保质期": case "使用期限":
+                specificationMap.put("periodOfValidity",str);
+                break;
+            case "执行标准":
+                specificationMap.put("executiveStandard",str);
+                break;
+            case "批准文号":
+                specificationMap.put("approvalNumber",str);
+                break;
+            case "剂型":
+                specificationMap.put("dosage",str);
+                break;
+            case "生产企业": case "生产企业/产地": case "注册人、生产企业、售后服务单位":
+                specificationMap.put("manufacturingEnterprise",str);
+                break;
+            case "产地":
+                specificationMap.put("placeOfOrigin",str);
+                break;
+            case "说明书修订日期":
+                specificationMap.put("revisionDate",str);
+                break;
+            case "产品性能结构及组成":
+                specificationMap.put("structureAndComposition",str);
+                break;
+            case "生产方式":
+                specificationMap.put("productionMode",str);
+                break;
+            case "性能":
+                specificationMap.put("performance",str);
+                break;
+            case "用途":
+                specificationMap.put("use",str);
+                break;
+            case "适用范围":case "使用范围":
+                specificationMap.put("scopeOfApplication",str);
+            case "浓度":
+                specificationMap.put("concentration",str);
+                break;
+            case "运输":
+                specificationMap.put("transportation",str);
+                break;
+            case "配件清单":
+                specificationMap.put("partsList",str);
+                break;
+            case "注册证编号/备案凭证编号": case "产品注册证编号":
+                specificationMap.put("registrationNumber",str);
+                break;
+            case "技术要求编号":
+                specificationMap.put("technicalRequirements",str);
+                break;
+            case "生产许可证编号/生产备案凭证编号": case "医疗器械生产企业许可证号":
+                specificationMap.put("licenseKey",str);
+                break;
+            case "保健功能":
+                specificationMap.put("healthcareFunction",str);
+                break;
+            case "功效成分及含量": case "功效成份及含量":
+                specificationMap.put("compositionAndContent",str);
+                break;
+            case "适宜人群":
+                specificationMap.put("commendedUser",str);
+                break;
+            case "不适宜人群":
+                specificationMap.put("disCommendedUser",str);
+                break;
+            case "生产许可证号":
+                specificationMap.put("productionLicense",str);
+                break;
+            case "卫生许可证": case "卫生许可证号":
+                specificationMap.put("sanitaryPermitNumber",str);
+                break;
+            case "经销商":
+                specificationMap.put("dealer",str);
+                break;
+            default:
+                specificationMap.put("other",str);
+                break;
+        }
+        return specificationMap;
+    }
+
+    /**
+     * @Author  lsl
+     * @Description 二次匹配切割、转换
      * @Date 16:33 2019/6/5
      * @Param [map]
      * @return java.util.Map
@@ -556,6 +411,8 @@ public class TextContent {
         }*/
         return map;
     }
+
+
 
     /**
      * @Author  lsl
